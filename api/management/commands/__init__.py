@@ -1,0 +1,1 @@
+from .initadmin import Command

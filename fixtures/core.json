@@ -1,0 +1,46 @@
+[
+  {
+    "model": "api.user",
+    "pk": 1,
+    "fields": {
+      "password": "pbkdf2_sha256$320000$2MaSYa2djdHzTRkRExEMp2$85p+cFJGr6paeRHuOvQubR5SJugdQy9fU30nsNAc2ds=",
+      "last_login": "2022-05-07T12:13:12.954Z",
+      "is_superuser": true,
+      "username": "zkhan1093@gmail.com",
+      "first_name": "",
+      "last_name": "",
+      "email": "",
+      "is_staff": true,
+      "is_active": true,
+      "date_joined": "2022-05-07T12:13:02.143Z",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "api.customer",
+    "pk": 1,
+    "fields": {
+      "user": 1,
+      "ship": "Ship1",
+      "supervisor": "Supervisor 1",
+      "contact": "8932061116"
+    }
+  },
+
+  {
+    "model": "api.item",
+    "pk": 1,
+    "fields": { "name": "Rice", "default_price": "100.00" }
+  },
+  {
+    "model": "api.item",
+    "pk": 2,
+    "fields": { "name": "Banana", "default_price": "30.00" }
+  },
+  {
+    "model": "api.item",
+    "pk": 3,
+    "fields": { "name": "Mango", "default_price": "200.00" }
+  }
+]

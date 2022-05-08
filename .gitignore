@@ -1,0 +1,5 @@
+venv/
+.py[co]
+**/__pycache__/
+*.env
+docker-compose.override.yml
