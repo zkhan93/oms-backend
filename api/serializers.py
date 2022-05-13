@@ -1,10 +1,33 @@
+import logging
 from rest_framework import serializers
 
-from api.models import Customer, Item, Order, OrderItem, OrderState
+from api.models import Customer, Item, Order, OrderItem, OrderState, User
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        exclude = ["groups"]
+
+
+class CreateCustomerSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Customer
+        fields = "__all__"
+
+
+class DetailCustomerSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source="user.get_full_name")
+    username = serializers.CharField(source="user.username")
+
+    class Meta:
+        model = Customer
+        fields = "__all__"
 
 
 class OrderSerializer(serializers.ModelSerializer):
     state = serializers.CharField(read_only=True)
+    customer = DetailCustomerSerializer()
 
     class Meta:
         model = Order
@@ -15,6 +38,16 @@ class OrderSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
+class OrderListSerializer(serializers.ModelSerializer):
+    state = serializers.CharField(read_only=True)
+    customer = DetailCustomerSerializer()
+    item_count = serializers.IntegerField(source="orderitem_set.count")
+
+    class Meta:
+        model = Order
+        fields = "__all__"
+
+
 class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderItem
@@ -22,9 +55,57 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 
 class CreateOrderItemSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source="item.name")
+
     class Meta:
         model = OrderItem
-        exclude = ["price"]
+        fields = ["name", "quantity", "unit"]
+
+    def validate_name(self, name):
+        return name and name.strip().lower()
+
+    def create(self, validated_data):
+        item = validated_data.pop("item")
+        validated_data["item"], _ = Item.objects.get_or_create(**item)
+        return super().create(validated_data)
+
+
+class OrderCreateSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True)
+    items = CreateOrderItemSerializer(many=True, source="orderitem_set")
+    customer = DetailCustomerSerializer(read_only=True)
+    item_count = serializers.IntegerField(source="orderitem_set.count", read_only=True)
+    state = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = Order
+        fields = [
+            "items",
+            "customer",
+            "item_count",
+            "state",
+            "comment",
+            "created_on",
+            "id",
+        ]
+
+    def validate_items(self, items):
+        if not items or not len(items):
+            raise serializers.ValidationError(
+                "At least one item is required to create an order"
+            )
+        return items
+
+    def create(self, validated_data):
+        user = self.context["user"]
+        validated_data["state"] = OrderState.CREATED
+        validated_data["customer_id"] = Customer.objects.get(user=user).id
+        orderitems = validated_data.pop("orderitem_set")
+        order = super().create(validated_data)
+        for orderitem in orderitems:
+            orderitem["order"] = order
+            CreateOrderItemSerializer().create(orderitem)
+        return order
 
 
 class NestedOrderItemSerializer(serializers.ModelSerializer):
@@ -38,19 +119,23 @@ class NestedOrderItemSerializer(serializers.ModelSerializer):
 
 class OrderDetailSerializer(serializers.ModelSerializer):
     items = NestedOrderItemSerializer(source="orderitem_set", many=True)
+    customer = DetailCustomerSerializer()
 
     class Meta:
         model = Order
-        exclude = []
+        fields = ["id", "customer", "state", "comment", "created_on", "items"]
+
+    def to_representation(self, instance):
+        json_data = super().to_representation(instance)
+        json_data["state"] = OrderState.values[json_data["state"]]
+        return json_data
+
+    def update(self, instance, validated_data):
+        logging.info(validated_data)
+        return super().update(instance, validated_data)
 
 
 class ItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Item
-        fields = "__all__"
-
-
-class CustomerSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Customer
         fields = "__all__"

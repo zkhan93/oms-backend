@@ -16,4 +16,5 @@ logging.debug(pformat(router.urls))
 urlpatterns = [
     path("", include(router.urls)),
     path("auth/", include("rest_framework.urls", namespace="rest_framework")),
+    path("api-auth/", views.CustomAuthToken.as_view()),
 ]

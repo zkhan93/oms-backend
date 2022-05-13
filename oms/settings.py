@@ -154,6 +154,7 @@ CORS_ALLOW_CREDENTIALS = True
 CORS_ORIGIN_WHITELIST = config(
     "CORS_ORIGIN_WHITELIST", cast=lambda v: [s.strip() for s in v.split(",")]
 )
+CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", cast=bool, default=False)
 
 AUTH_USER_MODEL = "api.User"
 

@@ -7,6 +7,12 @@ class OrderState:
     PROCESSING = "P"
     DELIVERED = "D"
     CANCELLED = "X"
+    values = {
+        CREATED: "Created",
+        PROCESSING: "Processing",
+        DELIVERED: "Delivered",
+        CANCELLED: "Cancelled",
+    }
 
 
 class User(AbstractUser):
@@ -43,7 +49,7 @@ class Order(models.Model):
 
 class Item(models.Model):
     name = models.CharField(max_length=100)
-    default_price = models.DecimalField(max_digits=30, decimal_places=2)
+    default_price = models.DecimalField(max_digits=30, decimal_places=2, default=0.00)
 
     def __str__(self):
         return self.name
