@@ -1,5 +1,8 @@
 FROM python:3.8-slim
 
+COPY install-packages.sh .
+RUN ./install-packages.sh
+
 RUN pip install --upgrade pip
 
 WORKDIR /app

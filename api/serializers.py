@@ -1,6 +1,6 @@
 import logging
 from rest_framework import serializers
-
+from django.db.models import Sum
 from api.models import Customer, Item, Order, OrderItem, OrderState, User
 
 
@@ -47,6 +47,11 @@ class OrderListSerializer(serializers.ModelSerializer):
         model = Order
         fields = "__all__"
 
+    def to_representation(self, instance):
+        json_data = super().to_representation(instance)
+        json_data["state"] = OrderState.values[json_data["state"]]
+        return json_data
+
 
 class OrderItemSerializer(serializers.ModelSerializer):
     class Meta:
@@ -59,7 +64,7 @@ class CreateOrderItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OrderItem
-        fields = ["name", "quantity", "unit"]
+        fields = ["id", "name", "quantity", "unit"]
 
     def validate_name(self, name):
         return name and name.strip().lower()
@@ -68,6 +73,25 @@ class CreateOrderItemSerializer(serializers.ModelSerializer):
         item = validated_data.pop("item")
         validated_data["item"], _ = Item.objects.get_or_create(**item)
         return super().create(validated_data)
+
+
+class UpdateOrderItemSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(source="item.name", read_only=True)
+    quantity = serializers.FloatField(read_only=True)
+    unit = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = OrderItem
+        fields = ["id", "name", "quantity", "unit", "price"]
+
+    def update(self, instance, validated_data):
+        order_item = super().update(instance, validated_data)
+
+        order = order_item.order
+        order.total = order.orderitem_set.aggregate(total=Sum("price"))["total"]
+        order.save()
+
+        return order_item
 
 
 class OrderCreateSerializer(serializers.ModelSerializer):
@@ -123,7 +147,7 @@ class OrderDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ["id", "customer", "state", "comment", "created_on", "items"]
+        fields = ["id", "customer", "state", "comment", "created_on", "items", "total"]
 
     def to_representation(self, instance):
         json_data = super().to_representation(instance)
@@ -131,6 +155,13 @@ class OrderDetailSerializer(serializers.ModelSerializer):
         return json_data
 
     def update(self, instance, validated_data):
+        if (
+            instance.state != OrderState.CANCELLED
+            and validated_data["state"] == OrderState.CANCELLED
+        ):
+            validated_data[
+                "comment"
+            ] = f"Cancelled by - {self.context['user'].username}"
         logging.info(validated_data)
         return super().update(instance, validated_data)
 

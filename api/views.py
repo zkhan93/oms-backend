@@ -1,20 +1,28 @@
+from decimal import Decimal
 import logging
-from multiprocessing import context
-from rest_framework import viewsets, mixins, permissions
-from rest_framework.response import Response
-from rest_framework.decorators import action
-from rest_framework.authtoken.views import ObtainAuthToken
+from wsgiref.util import FileWrapper
+from django.http import FileResponse, HttpResponse
+from django.template import loader
+import pdfkit
+import tempfile
+
+from rest_framework import mixins, permissions, viewsets
 from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
 from api.models import Customer, Item, Order, OrderItem
 from api.serializers import (
     CreateCustomerSerializer,
     CreateOrderItemSerializer,
-    OrderCreateSerializer,
     DetailCustomerSerializer,
     ItemSerializer,
+    OrderCreateSerializer,
     OrderDetailSerializer,
     OrderListSerializer,
     OrderSerializer,
+    UpdateOrderItemSerializer,
 )
 
 
@@ -26,7 +34,15 @@ class CustomAuthToken(ObtainAuthToken):
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
         token, _ = Token.objects.get_or_create(user=user)
-        return Response({"token": token.key, "user_id": user.pk, "email": user.email})
+        roles = [g.name for g in user.groups.all()]
+        return Response(
+            {
+                "token": token.key,
+                "user_id": user.pk,
+                "email": user.email,
+                "roles": roles,
+            }
+        )
 
 
 class IsOrderOwner(permissions.BasePermission):
@@ -77,6 +93,37 @@ class OrderViewSet(
             serializer.create(serializer.validated_data)
         return Response(serializer.data)
 
+    @action(detail=True, methods=["get"])
+    def receipt(self, request, pk):
+        order = self.get_object()
+        serializer = OrderDetailSerializer(instance=order)
+        context = serializer.data
+        for item in context["items"]:
+            logging.info(item)
+            if item["price"]:
+                item["total"] = Decimal(
+                    Decimal(item["price"]) * Decimal(item["quantity"])
+                )
+            else:
+                item["total"] = ""
+        template = loader.get_template("api/receipt.html")
+        html_content = template.render(context, request)
+        logging.info(html_content)
+        # TODO: change receipt_filename to some media location
+        receipt_filename = f"order_{order.id}.pdf"
+        html_file = tempfile.NamedTemporaryFile("w", suffix=".html")
+        html_file.write(html_content)
+        html_file.flush()
+        logging.info(html_file.name)
+        pdfkit.from_file(html_file.name, receipt_filename)
+        html_file.close()
+
+        response = FileResponse(
+            open(receipt_filename, "rb"), content_type="application/pdf"
+        )
+        # response["Content-Disposition"] = f'attachment; filename="{receipt_filename}"'
+        return response
+
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context["user"] = self.request.user
@@ -96,12 +143,12 @@ class OrderViewSet(
 
 
 class OrderItemViewSet(
-    mixins.DestroyModelMixin,
     mixins.UpdateModelMixin,
+    mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
 ):
     queryset = OrderItem.objects.all()
-    serializer_class = CreateOrderItemSerializer
+    serializer_class = UpdateOrderItemSerializer
     permission_classes = [permissions.IsAuthenticated, IsOrderItemOwner]
 
 
@@ -119,6 +166,10 @@ class CustomerViewSet(
         return DetailCustomerSerializer
 
 
-class ItemsViewSet(viewsets.ReadOnlyModelViewSet):
+class ItemsViewSet(
+    mixins.UpdateModelMixin,
+    mixins.ListModelMixin,
+    viewsets.GenericViewSet,
+):
     queryset = Item.objects.all()
     serializer_class = ItemSerializer
