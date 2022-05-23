@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/4.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
+from email.policy import default
 from decouple import config
 from pathlib import Path
 import dj_database_url
@@ -119,6 +120,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
 STATIC_URL = "static/"
+STATIC_ROOT = config("STATIC_ROOT", default="static")
 
 
 # Default primary key field type
@@ -160,3 +162,7 @@ AUTH_USER_MODEL = "api.User"
 
 DJANGO_SUPERUSER_USERNAME = config("DJANGO_SUPERUSER_USERNAME")
 DJANGO_SUPERUSER_PASSWORD = config("DJANGO_SUPERUSER_PASSWORD")
+
+CSRF_TRUSTED_ORIGINS = config(
+    "CSRF_TRUSTED_ORIGINS", cast=lambda v: [s.strip() for s in v.split(",")]
+)
