@@ -1,0 +1,17 @@
+name: Create a tag
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+env:
+  GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Bump version and push tag
+        uses: anothrNick/github-tag-action@1.12.1
+        env:
+          RELEASE_BRANCHES: master
+          WITH_V: true
