@@ -1,10 +1,10 @@
 from decimal import Decimal
 import logging
-from wsgiref.util import FileWrapper
-from django.http import FileResponse, HttpResponse
+from django.http import FileResponse
 from django.template import loader
 import pdfkit
 import tempfile
+from django.contrib.auth.models import Group
 
 from rest_framework import mixins, permissions, viewsets
 from rest_framework.authtoken.models import Token
@@ -28,6 +28,7 @@ from api.serializers import (
 
 class CustomAuthToken(ObtainAuthToken):
     def post(self, request, *args, **kwargs):
+        logging.info(request.data)
         serializer = self.serializer_class(
             data=request.data, context={"request": request}
         )
@@ -39,16 +40,24 @@ class CustomAuthToken(ObtainAuthToken):
             {
                 "token": token.key,
                 "user_id": user.pk,
-                "email": user.email,
+                "customer_id": user.customer.id,
                 "roles": roles,
             }
         )
 
 
-class IsOrderOwner(permissions.BasePermission):
+class IsOrderOwnerOrAdmin(permissions.BasePermission):
+    def has_permission(self, request, view):
+        if view.action == "all":
+            return request.user.groups.filter(name="admin").exists()
+        return True
+
     def has_object_permission(self, request, view, obj):
         customer = getattr(request.user, "customer", None)
-        return obj.customer == customer
+        return (
+            obj.customer == customer
+            or request.user.groups.filter(name="admin").exists()
+        )
 
 
 class IsOrderItemOwner(permissions.BasePermission):
@@ -66,23 +75,32 @@ class OrderViewSet(
 ):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOrderOwner]
+    permission_classes = [permissions.IsAuthenticated, IsOrderOwnerOrAdmin]
 
     def get_serializer_class(self):
-        if self.action in ("list",):
+        if self.action in ("list", "all"):
             return OrderListSerializer
         if self.action in ("create",):
             return OrderCreateSerializer
         return OrderDetailSerializer
 
     def get_queryset(self):
+        if self.action == "all":
+            return Order.objects.all().order_by("-created_on")
         user = self.request.user
-        try:
-            customer = Customer.objects.get(user=user)
-        except Customer.DoesNotExist:
-            return Order.objects.none()
-        else:
-            return Order.objects.filter(customer=customer).order_by("-created_on")
+        if self.action == "list":
+            try:
+                customer = Customer.objects.get(user=user)
+            except Customer.DoesNotExist:
+                return Order.objects.none()
+            else:
+                return Order.objects.filter(customer=customer).order_by("-created_on")
+        return Order.objects.order_by("-created_on")
+
+    @action(detail=False, methods=["get"])
+    def all(self, request, *args, **kwargs):
+
+        return self.list(self, request, *args, **kwargs)
 
     @action(detail=True, methods=["post"])
     def add_item(self, request, pk):
@@ -134,17 +152,11 @@ class OrderViewSet(
         logging.info(request.data)
         return super().partial_update(request, *args, **kwargs)
 
-    # def create(self, request, *args, **kwargs):
-    #     serializer = self.get_serializer(data=request.data)
-    #     serializer.is_valid(raise_exception=True)
-    #     self.perform_create(serializer)
-    #     headers = self.get_success_headers(serializer.data)
-    #     return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-
 
 class OrderItemViewSet(
     mixins.UpdateModelMixin,
     mixins.RetrieveModelMixin,
+    mixins.DestroyModelMixin,
     viewsets.GenericViewSet,
 ):
     queryset = OrderItem.objects.all()
@@ -160,10 +172,22 @@ class CustomerViewSet(
 ):
     queryset = Customer.objects.all()
 
+    def get_permissions(self):
+        if self.action == "create":
+            return [
+                permissions.AllowAny(),
+            ]
+        return super().get_permissions()
+
     def get_serializer_class(self):
         if self.action == "create":
             return CreateCustomerSerializer
         return DetailCustomerSerializer
+
+
+class IsAdmin(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.groups.filter(name="admin").exists()
 
 
 class ItemsViewSet(
@@ -173,3 +197,4 @@ class ItemsViewSet(
 ):
     queryset = Item.objects.all()
     serializer_class = ItemSerializer
+    permission_classes = [IsAdmin]

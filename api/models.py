@@ -64,7 +64,7 @@ class OrderItem(models.Model):
     unit = models.CharField(
         max_length=10,
         choices=(
-            ("u", "Unit"),
+            ("number", "Number"),
             ("dozen", "Dozen"),
             ("g", "Grams"),
             ("kg", "Kilogram"),

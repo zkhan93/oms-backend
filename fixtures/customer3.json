@@ -1,0 +1,30 @@
+[
+  {
+    "model": "api.user",
+    "pk": 3,
+    "fields": {
+      "password": "pbkdf2_sha256$320000$2MaSYa2djdHzTRkRExEMp2$85p+cFJGr6paeRHuOvQubR5SJugdQy9fU30nsNAc2ds=",
+      "last_login": "2022-05-07T12:13:12.954Z",
+      "is_superuser": true,
+      "username": "3333333333",
+      "first_name": "",
+      "last_name": "",
+      "email": "",
+      "is_staff": true,
+      "is_active": true,
+      "date_joined": "2022-05-07T12:13:02.143Z",
+      "groups": [],
+      "user_permissions": []
+    }
+  },
+  {
+    "model": "api.customer",
+    "pk": 3,
+    "fields": {
+      "user": 3,
+      "ship": "Ship3",
+      "supervisor": "Supervisor 3",
+      "contact": "3333333333"
+    }
+  }
+]

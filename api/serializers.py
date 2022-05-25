@@ -11,9 +11,30 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class CreateCustomerSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(source="user.password", write_only=True)
+    ship = serializers.CharField()
+    supervisor = serializers.CharField()
+    contact = serializers.CharField()
+    id = serializers.IntegerField(read_only=True)
+    username = serializers.CharField(source="user.username", read_only=True)
+
     class Meta:
         model = Customer
-        fields = "__all__"
+        fields = ["id", "password", "ship", "supervisor", "contact", "username"]
+
+    def validate_contact(self, contact):
+        if User.objects.filter(username=contact).exists():
+            raise serializers.ValidationError("Number already registered")
+        return contact
+
+    def create(self, validated_data):
+        username = validated_data["contact"]
+        password = validated_data.pop("user").get("password")
+        user = User.objects.create_user(
+            username=username, is_active=False, password=password
+        )
+        validated_data["user"] = user
+        return super().create(validated_data)
 
 
 class DetailCustomerSerializer(serializers.ModelSerializer):
@@ -76,9 +97,9 @@ class CreateOrderItemSerializer(serializers.ModelSerializer):
 
 
 class UpdateOrderItemSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(source="item.name", read_only=True)
-    quantity = serializers.FloatField(read_only=True)
-    unit = serializers.CharField(read_only=True)
+    name = serializers.CharField(source="item.name")
+    quantity = serializers.FloatField()
+    unit = serializers.CharField()
 
     class Meta:
         model = OrderItem
