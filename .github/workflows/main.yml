@@ -37,13 +37,9 @@ jobs:
           DJANGO_SUPERUSER_USERNAME: admin
           DJANGO_SUPERUSER_PASSWORD: admin
           CSRF_TRUSTED_ORIGINS: "http://localhost"
-
-      - name: Bump version and push tag
-        uses: anothrNick/github-tag-action@master
-        env:
-          RELEASE_BRANCHES: master
-
-      - uses: actions/checkout@v2
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y.%m.%d')"
       - name: Publish to Registry
         uses: elgohr/Publish-Docker-Github-Action@v4
         with:
@@ -52,3 +48,13 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: ghcr.io
           tag_semver: true
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.date.outputs.date }}
+          release_name: Release ${{ steps.date.outputs.date }}
+          draft: false
+          prerelease: false
