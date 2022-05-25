@@ -38,7 +38,6 @@ class CreateCustomerSerializer(serializers.ModelSerializer):
 
 
 class DetailCustomerSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(source="user.get_full_name")
     username = serializers.CharField(source="user.username")
 
     class Meta:

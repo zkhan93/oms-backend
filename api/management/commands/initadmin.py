@@ -11,6 +11,6 @@ class Command(BaseCommand):
 
         if not User.objects.filter(username=username).exists():
             logging.info(f"Creating account for {username}")
-            admin = User.objects.create_superuser(username=username, password=password)
+            User.objects.create_superuser(username=username, password=password)
         else:
             logging.info("Admin account has already been initialized.")

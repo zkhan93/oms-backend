@@ -4,7 +4,6 @@ from django.http import FileResponse
 from django.template import loader
 import pdfkit
 import tempfile
-from django.contrib.auth.models import Group
 
 from rest_framework import mixins, permissions, viewsets
 from rest_framework.authtoken.models import Token
