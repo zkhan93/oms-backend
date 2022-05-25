@@ -34,9 +34,7 @@ jobs:
         uses: anothrNick/github-tag-action@master
         env:
           RELEASE_BRANCHES: master
-  publish:
-    runs-on: ubuntu-latest
-    steps:
+
       - uses: actions/checkout@v2
       - name: Publish to Registry
         uses: elgohr/Publish-Docker-Github-Action@v4
