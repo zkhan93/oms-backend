@@ -161,7 +161,7 @@ class OrderItemViewSet(
 ):
     queryset = OrderItem.objects.all()
     serializer_class = UpdateOrderItemSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOrderItemOwner]
+    permission_classes = [permissions.IsAuthenticated, IsOrderOwnerOrAdmin]
 
 
 class CustomerViewSet(
