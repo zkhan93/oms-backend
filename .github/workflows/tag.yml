@@ -11,6 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Bump version and push tag
-        uses: anothrNick/github-tag-action@1.39.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: phish108/autotag-action@1.1.37
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN}}
+          with-v: "true"
