@@ -29,6 +29,14 @@ jobs:
       - name: Test with pytest
         run: |
           python manage.py test
+        env:
+          SECRET_KEY: this-is-a-test-secret-key
+          ALLOWED_HOSTS: "*"
+          DATABASE_URL: "sqlite://:memory:"
+          CORS_ORIGIN_WHITELIST: "localhost"
+          DJANGO_SUPERUSER_USERNAME: admin
+          DJANGO_SUPERUSER_PASSWORD: admin
+          CSRF_TRUSTED_ORIGINS: "localhost"
 
       - name: Bump version and push tag
         uses: anothrNick/github-tag-action@master
