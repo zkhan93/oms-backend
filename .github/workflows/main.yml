@@ -33,10 +33,10 @@ jobs:
           SECRET_KEY: this-is-a-test-secret-key
           ALLOWED_HOSTS: "*"
           DATABASE_URL: "sqlite://:memory:"
-          CORS_ORIGIN_WHITELIST: "localhost"
+          CORS_ORIGIN_WHITELIST: "http://localhost"
           DJANGO_SUPERUSER_USERNAME: admin
           DJANGO_SUPERUSER_PASSWORD: admin
-          CSRF_TRUSTED_ORIGINS: "localhost"
+          CSRF_TRUSTED_ORIGINS: "http://localhost"
 
       - name: Bump version and push tag
         uses: anothrNick/github-tag-action@master
