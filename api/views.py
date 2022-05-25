@@ -128,7 +128,6 @@ class OrderViewSet(
                 item["total"] = ""
         template = loader.get_template("api/receipt.html")
         html_content = template.render(context, request)
-        logging.info(html_content)
         # TODO: change receipt_filename to some media location
         receipt_filename = f"order_{order.id}.pdf"
         html_file = tempfile.NamedTemporaryFile("w", suffix=".html")
