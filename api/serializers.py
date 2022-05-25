@@ -1,6 +1,6 @@
 import logging
 from rest_framework import serializers
-from django.db.models import Sum
+from django.db.models import Sum, F, DecimalField
 from api.models import Customer, Item, Order, OrderItem, OrderState, User
 
 
@@ -108,7 +108,9 @@ class UpdateOrderItemSerializer(serializers.ModelSerializer):
         order_item = super().update(instance, validated_data)
 
         order = order_item.order
-        order.total = order.orderitem_set.aggregate(total=Sum("price"))["total"]
+        order.total = order.orderitem_set.aggregate(
+            total=Sum(F("price") * F("quantity"), output_field=DecimalField())
+        )["total"]
         order.save()
 
         return order_item
