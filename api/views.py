@@ -59,10 +59,13 @@ class IsOrderOwnerOrAdmin(permissions.BasePermission):
         )
 
 
-class IsOrderItemOwner(permissions.BasePermission):
+class IsOrderItemOwnerOrAdmin(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         customer = getattr(request.user, "customer", None)
-        return obj.order.customer == customer
+        return (
+            obj.order.customer == customer
+            or request.user.groups.filter(name="admin").exists()
+        )
 
 
 class OrderViewSet(
@@ -160,7 +163,7 @@ class OrderItemViewSet(
 ):
     queryset = OrderItem.objects.all()
     serializer_class = UpdateOrderItemSerializer
-    permission_classes = [permissions.IsAuthenticated, IsOrderOwnerOrAdmin]
+    permission_classes = [permissions.IsAuthenticated, IsOrderItemOwnerOrAdmin]
 
 
 class CustomerViewSet(
